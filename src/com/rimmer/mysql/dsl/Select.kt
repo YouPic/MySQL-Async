@@ -14,6 +14,7 @@ class Select(val set: FieldSet, val where: Op<Boolean>?, val isCount: Boolean = 
     var limit: Int? = null
     var offset: Int? = null
     var forUpdate: Boolean = false
+    var indexesForced = ArrayList<String>()
 
     override fun format(builder: QueryBuilder) = with(builder) {
         append("SELECT ")
@@ -28,6 +29,14 @@ class Select(val set: FieldSet, val where: Op<Boolean>?, val isCount: Boolean = 
 
         append(" FROM ")
         set.source.format(this)
+
+        if(indexesForced.isNotEmpty()) {
+            append(" FORCE INDEX (")
+            indexesForced.map { it.replace("`", "``") }.map { "`$it`" }.joinToString(",").let {
+                append(it)
+            }
+            append(")")
+        }
 
         if(where != null) {
             append(" WHERE ")
@@ -112,6 +121,12 @@ class Select(val set: FieldSet, val where: Op<Boolean>?, val isCount: Boolean = 
 
     infix fun offset(index: Int): Select {
         offset = index
+        return this
+    }
+
+    fun forceIndex(vararg index: String): Select {
+        // TODO: Cause error on index identifier that contains prohibited characters
+        indexesForced.addAll(index)
         return this
     }
 }
